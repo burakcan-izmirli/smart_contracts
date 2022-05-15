@@ -10,23 +10,29 @@ contract taxi_business {
     uint fixedExpenses;
     uint participationFee;
     uint ownedCar;
-    address[] participantAddresses;    
+    uint lastExpensesSent;
+    uint lastProfitCalculation;
+    address[] participantAddresses;   
+
 
     mapping (address => participant) participants ;
     mapping (address => bool) driverVotes;
     mapping (address => bool) carVotes;
     mapping (address => bool) pepurchaseVotes;
+    mapping (address => bool) firingVotes;
 
     
     struct participant{
-        address participantAddress;
+        address payable participantAddress;
         uint balance;
     }
 
     struct driverProposal{
-        address driverAddress;
+        address payable driverAddress;
         uint salary;
+        uint balance;
         uint approvalState;
+        uint lastPaycheck;
         bool exist;
     }
 
@@ -41,7 +47,8 @@ contract taxi_business {
     carProposal proposedCar;
     carProposal repurchaseProposedCar;
     driverProposal proposedDriver;
-    driverProposal taxiDriver; 
+    driverProposal taxiDriver;
+    driverProposal fireProposedDriver; 
 
     constructor(){
         manager = msg.sender;
@@ -56,7 +63,7 @@ contract taxi_business {
         require(participantAddresses.length < 9 , "There is no place for new participants.");
         require(msg.value < participationFee, "You don't have enough ether to participate.");
 
-        participants[msg.sender] = participant(msg.sender,0 ether);
+        participants[msg.sender] = participant(payable(msg.sender),0 ether);
         participantAddresses.push(msg.sender);
 
         contractBalance += participationFee;
@@ -121,9 +128,9 @@ contract taxi_business {
 
     }
 
-    function proposeDriver(address driverAddress, uint salary) public {
+    function proposeDriver(address payable driverAddress, uint salary) public {
         require(!taxiDriver.exist, "We already have taxi driver.");
-        proposedDriver = driverProposal(driverAddress,salary,0,false);
+        proposedDriver = driverProposal(driverAddress,salary,0,0,0,false);
 
         for(uint i=0; i < participantAddresses.length; i++){
             driverVotes[participantAddresses[i]] = false; 
@@ -143,6 +150,82 @@ contract taxi_business {
         delete proposedDriver;
     }
 
+    function proposeFireDriver() public {
+        require(participants[msg.sender].participantAddress != address(0), "You are not a participant.");
+        fireProposedDriver = taxiDriver;
+        fireProposedDriver.approvalState = 0;
 
+        for(uint i=0; i < participantAddresses.length; i++){
+            firingVotes[participantAddresses[i]] = false; 
+            }
+    }
 
+    function approveFireDriver() public{
+        require(participants[msg.sender].participantAddress != address(0), "You are not a participant.");
+        require(!firingVotes[msg.sender], "Each participant can vote only once.");
+        fireProposedDriver.approvalState +=1;
+        firingVotes[msg.sender] = true;
+    }
+
+    function fireDriver() public {
+        require(fireProposedDriver.approvalState > (participantAddresses.length/2) || msg.sender == taxiDriver.driverAddress, "Either the fire proposal is not approved or you are not the driver.");
+        taxiDriver.driverAddress.transfer(taxiDriver.balance);
+        delete taxiDriver;
+    }
+
+    function leaveJob() public{
+       require(msg.sender == taxiDriver.driverAddress, "You are not the driver."); 
+       fireDriver();
+    }
+
+    function getCharge() public payable {
+        contractBalance += msg.value;
+    }
+
+    function getSalary() public{
+        require(msg.sender == taxiDriver.driverAddress, "You are not the driver."); 
+        require(block.timestamp - taxiDriver.lastPaycheck >= 2629743, "Next paycheck time has not come yet. (One month)"); 
+        contractBalance -= taxiDriver.salary;
+        taxiDriver.balance += taxiDriver.salary;
+        taxiDriver.lastPaycheck = block.timestamp;
+
+        if(taxiDriver.balance>0){
+        taxiDriver.driverAddress.transfer(taxiDriver.salary);
+        }
+    }
+    function carExpenses() public{        
+        require(participants[msg.sender].participantAddress != address(0), "You are not a participant.");
+        require(block.timestamp - lastExpensesSent >= 15778463, "Next sending expenses time has not come yet. (Six months) ");
+        require(contractBalance >= fixedExpenses, "There is no enough ether to pay fixed expenses.");
+        contractBalance -= fixedExpenses;
+
+        carDealer.transfer(fixedExpenses);
+        lastExpensesSent = block.timestamp;
+    }
+    
+    function payDividend() public{
+        require(participants[msg.sender].participantAddress != address(0), "You are not a participant.");
+        require(block.timestamp - lastProfitCalculation >= 15778463, "Next calculating profit time has not come yet. (Six months)");
+
+        uint totalProfit = contractBalance;
+        uint profitPerParticipant = contractBalance/participantAddresses.length;
+
+        for (uint i=0; i<participantAddresses.length; i++){
+                participants[participantAddresses[i]].balance +=profitPerParticipant;
+            }
+    }
+
+    function getDividend() public{
+        require(participants[msg.sender].participantAddress != address(0), "You are not a participant.");
+
+        if(participants[msg.sender].balance >0){
+            participants[msg.sender].participantAddress.transfer(participants[msg.sender].balance);
+        }
+        participants[msg.sender].balance = 0;
+
+    }
+
+    fallback() external{
+        revert();
+    }
 }
