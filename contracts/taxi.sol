@@ -86,6 +86,10 @@ contract taxi_business {
         require(!carVotes[msg.sender], "Each participant can vote only once.");
         proposedCar.approvalState +=1;
         carVotes[msg.sender] = true;
+
+        if(proposedCar.approvalState > (participantAddresses.length/2)){
+            purchaseCar();
+        }
     }
 
     function purchaseCar() public{
@@ -113,6 +117,10 @@ contract taxi_business {
         require(!carVotes[msg.sender], "Each participant can vote only once.");
         repurchaseProposedCar.approvalState +=1;
         pepurchaseVotes[msg.sender] = true;
+
+        if(repurchaseProposedCar.approvalState > (participantAddresses.length/2)){
+            repurchaseCar();
+        } 
     }
 
     function repurchaseCar() payable public{
@@ -139,6 +147,10 @@ contract taxi_business {
         require(!carVotes[msg.sender], "Each participant can vote only once.");
         proposedDriver.approvalState +=1;
         driverVotes[msg.sender] = true;
+
+        if (proposedDriver.approvalState > (participantAddresses.length/2)){
+            setDriver();
+        }
     }
 
     function setDriver() public {
@@ -162,6 +174,10 @@ contract taxi_business {
         require(!firingVotes[msg.sender], "Each participant can vote only once.");
         fireProposedDriver.approvalState +=1;
         firingVotes[msg.sender] = true;
+
+        if (fireProposedDriver.approvalState > (participantAddresses.length/2)){
+            fireDriver();
+        }
     }
 
     function fireDriver() public {
