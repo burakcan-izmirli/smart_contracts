@@ -18,7 +18,7 @@ contract taxi_business {
     mapping (address => participant) participants ;
     mapping (address => bool) driverVotes;
     mapping (address => bool) carVotes;
-    mapping (address => bool) pepurchaseVotes;
+    mapping (address => bool) repurchaseVotes;
     mapping (address => bool) firingVotes;
 
     
@@ -108,7 +108,7 @@ contract taxi_business {
         repurchaseProposedCar = carProposal(carId,price,offerValidTime,0);
 
         for(uint i=0; i < participantAddresses.length; i++){
-                pepurchaseVotes[participantAddresses[i]] = false; 
+                repurchaseVotes[participantAddresses[i]] = false; 
             }
     }
 
@@ -116,7 +116,7 @@ contract taxi_business {
         require(participants[msg.sender].participantAddress != address(0), "You are not a participant.");
         require(!carVotes[msg.sender], "Each participant can vote only once.");
         repurchaseProposedCar.approvalState +=1;
-        pepurchaseVotes[msg.sender] = true;
+        repurchaseVotes[msg.sender] = true;
 
         if(repurchaseProposedCar.approvalState > (participantAddresses.length/2)){
             repurchaseCar();
