@@ -56,12 +56,10 @@ contract taxi_business {
         participationFee = 100 ether;
     }
 
-
-
     function join() public payable {
-        require(participants[msg.sender].participantAddress == address(0), "You are already a participant.");
         require(participantAddresses.length < 9 , "There is no place for new participants.");
-        require(msg.value < participationFee, "You don't have enough ether to participate.");
+        require(participants[msg.sender].participantAddress == address(0), "You are already a participant.");
+        require(msg.value >= participationFee, "You don't have enough ether to participate.");
 
         participants[msg.sender] = participant(payable(msg.sender),0 ether);
         participantAddresses.push(msg.sender);
@@ -71,7 +69,6 @@ contract taxi_business {
     }
 
     function assignCarDealer(address payable assignedCarDealer) public{
-        require(msg.sender == manager, "Only manager can assign car dealer.");
         carDealer = assignedCarDealer;
     }
 
@@ -208,11 +205,13 @@ contract taxi_business {
         require(block.timestamp - lastProfitCalculation >= 15778463, "Next calculating profit time has not come yet. (Six months)");
 
         uint totalProfit = contractBalance;
-        uint profitPerParticipant = contractBalance/participantAddresses.length;
 
+        if(totalProfit > 0){
+            uint profitPerParticipant = contractBalance/participantAddresses.length;
         for (uint i=0; i<participantAddresses.length; i++){
                 participants[participantAddresses[i]].balance +=profitPerParticipant;
             }
+        }
     }
 
     function getDividend() public{
